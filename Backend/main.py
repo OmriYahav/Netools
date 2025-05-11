@@ -43,3 +43,8 @@ def geolocate(ip: str = Query(...)):
 def get_my_ip(request: Request):
     client_host = request.client.host
     return {"your_ip": client_host}
+
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)

@@ -10,7 +10,7 @@ export default function HomeScreen() {
   const [clientIp, setClientIp] = useState<string | null>(null);
 
   useEffect(() => {
-    axios.get('http://172.16.10.150:8000/my-ip')
+    axios.get('http://172.16.16.25:8000/my-ip')
       .then(res => setClientIp(res.data.your_ip))
       .catch(() => setClientIp("Unavailable"));
   }, []);
@@ -19,9 +19,9 @@ export default function HomeScreen() {
     setResults(null);
     try {
       const [portRes, pingRes, geoRes] = await Promise.all([
-        axios.get(`http://172.16.10.150:8000/check-port?ip=${ip}&port=${port}`),
-        axios.get(`http://172.16.10.150:8000/ping?ip=${ip}`),
-        axios.get(`http://172.16.10.150:8000/geolocate?ip=${ip}`),
+        axios.get(`http://172.16.16.25:8000/check-port?ip=${ip}&port=${port}`),
+        axios.get(`http://172.16.16.25:8000/ping?ip=${ip}`),
+        axios.get(`http://172.16.16.25:8000/geolocate?ip=${ip}`),
       ]);
 
       setResults({
