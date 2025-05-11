@@ -36,73 +36,97 @@ export default function HomeScreen() {
     return !isNaN(portNum) && portNum > 0 && portNum <= 65535;
   };
 
-  const check = async () => {
-    setResults(null);
-    setErrorMessage('');
-    setErrorVisible(false);
-    setWhois(null);
-    fadeAnim.setValue(0);
-    setLoading(true);
+const check = async () => {
+  setResults(null);
+  setErrorMessage('');
+  setErrorVisible(false);
+  setWhois(null);
+  fadeAnim.setValue(0);
+  setLoading(true);
 
-    if (!isValidIP(ip)) {
-      setErrorMessage("❌ Invalid IP address format.");
-      setErrorVisible(true);
-      setLoading(false);
-      setTimeout(() => setErrorVisible(false), 4000);
-      return;
-    }
-
-    if (!isValidPort(port)) {
-      setErrorMessage("❌ Port must be a number between 1 and 65535.");
-      setErrorVisible(true);
-      setLoading(false);
-      setTimeout(() => setErrorVisible(false), 4000);
-      return;
-    }
-
-    try {
-      const [portRes, pingRes, geoRes, whoisRes] = await Promise.all([
-        axios.get(`http://172.16.16.25:8000/check-port?ip=${ip}&port=${port}`, { timeout: 6000 }),
-        axios.get(`http://172.16.16.25:8000/ping?ip=${ip}`, { timeout: 6000 }),
-        axios.get(`http://172.16.16.25:8000/geolocate?ip=${ip}`, { timeout: 6000 }),
-        axios.get(`http://172.16.16.25:8000/whois?ip=${ip}`, { timeout: 6000 })
-      ]);
-
-      setResults({
-        portStatus: portRes.data.status,
-        ping: pingRes.data,
-        geo: geoRes.data,
-      });
-
-      setWhois(whoisRes.data);
-
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 500,
-        useNativeDriver: true,
-      }).start();
-        setLoading(false);
-    } catch (err: any) {
-  console.error("Error occurred:", err);
-
-if (err.response) {
-  if (err.response.data?.detail) {
-    setErrorMessage(`❌ ${err.response.data.detail}`);
-  } else {
-    setErrorMessage(`❌ Server error ${err.response.status}: ${JSON.stringify(err.response.data)}`);
+  if (!isValidIP(ip)) {
+    setErrorMessage("❌ Invalid IP address format.");
+    setErrorVisible(true);
+    setLoading(false);
+    setTimeout(() => setErrorVisible(false), 4000);
+    return;
   }
-} else if (err.request) {
-  setErrorMessage("❌ No response from server. Is the backend reachable?");
-} else {
-  setErrorMessage(`❌ Unexpected error: ${err.message}`);
+
+  if (!isValidPort(port)) {
+    setErrorMessage("❌ Port must be a number between 1 and 65535.");
+    setErrorVisible(true);
+    setLoading(false);
+    setTimeout(() => setErrorVisible(false), 4000);
+    return;
+  }
+
+  let portStatus = 'unknown';
+  let pingData = { reachable: false, avg_latency_ms: 0 };
+  let geoData = { country: '', regionName: '', city: '', isp: '' };
+  let whoisData = null;
+
+try {
+  const portRes = await axios.get(`http://172.16.16.25:8000/check-port?ip=${ip}&port=${port}`, { timeout: 6000 });
+  portStatus = portRes.data.status;
+} catch (err) {
+  if (err instanceof Error) {
+    console.warn("Port check failed:", err.message);
+  } else {
+    console.warn("Port check failed:", err);
+  }
+}
+
+try {
+  const pingRes = await axios.get(`http://172.16.16.25:8000/ping?ip=${ip}`, { timeout: 6000 });
+  pingData = pingRes.data;
+} catch (err) {
+  if (err instanceof Error) {
+    console.warn("Ping check failed:", err.message);
+  } else {
+    console.warn("Ping check failed:", err);
+  }
+}
+
+try {
+  const geoRes = await axios.get(`http://172.16.16.25:8000/geolocate?ip=${ip}`, { timeout: 6000 });
+  geoData = geoRes.data;
+} catch (err) {
+  if (err instanceof Error) {
+    console.warn("Geolocation failed:", err.message);
+  } else {
+    console.warn("Geolocation failed:", err);
+  }
+}
+
+try {
+  const whoisRes = await axios.get(`http://172.16.16.25:8000/whois?ip=${ip}`, { timeout: 6000 });
+  whoisData = whoisRes.data;
+} catch (err) {
+  if (err instanceof Error) {
+    console.warn("WHOIS lookup failed:", err.message);
+  } else {
+    console.warn("WHOIS lookup failed:", err);
+  }
 }
 
 
-  setErrorVisible(true);
+  setResults({
+    portStatus,
+    ping: pingData,
+    geo: geoData,
+  });
+
+  setWhois(whoisData);
+
+  Animated.timing(fadeAnim, {
+    toValue: 1,
+    duration: 500,
+    useNativeDriver: true,
+  }).start();
+
   setLoading(false);
-}
+};
 
-  };
 
   const renderStatus = (label: string, isPositive: boolean, value: string) => (
     <View style={styles.statusRow}>
